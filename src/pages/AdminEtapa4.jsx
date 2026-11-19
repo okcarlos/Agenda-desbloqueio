@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Bell, Building2, RefreshCcw, Users } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { obterOpcoesAgendamentos } from '../lib/agendamentos.js'
-import { atualizarUsuarioAdmin, carregarDashboard, criarUsuarioAdmin, listarEmpresasAdmin, listarNotificacoes, listarUsuariosAdmin, marcarLida, salvarEmpresa } from '../lib/administracao.js'
+import { alterarUsuarioGeral, atualizarUsuarioAdmin, carregarDashboard, criarUsuarioAdmin, listarEmpresasAdmin, listarNotificacoes, listarUsuariosAdmin, marcarLida, salvarEmpresa } from '../lib/administracao.js'
 
 const STATUSES = [
   ['AGENDADO','status-blue'], ['EM ATENDIMENTO','status-gold'], ['DESBLOQUEADO','status-green'],
@@ -57,12 +57,22 @@ export function EmpresasAdmin() {
 export function UsuariosAdmin() {
  const {profile}=useAuth(); const general=profile?.perfil==='ADMIN_GERAL'
  const [items,setItems]=useState([]),[companies,setCompanies]=useState([]),[form,setForm]=useState({nome:'',email:'',perfil:'PARCEIRO',empresa_id:general?'':profile?.empresa_id||''})
- const [editing,setEditing]=useState(null),[credentials,setCredentials]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[info,setInfo]=useState('')
+ const [editing,setEditing]=useState(null),[editingOriginal,setEditingOriginal]=useState(null),[credentials,setCredentials]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[info,setInfo]=useState('')
  const load=useCallback(async()=>{setError('');try{const [us,emps]=await Promise.all([listarUsuariosAdmin(),general?listarEmpresasAdmin():Promise.resolve([])]);setItems(us);setCompanies(emps)}catch(e){setError(e.message)}},[general])
  useEffect(()=>{void load()},[load])
  const set=(k,v)=>setForm(p=>({...p,[k]:v,...(k==='perfil'&&['ADMIN_GERAL','DESBLOQUEIO'].includes(v)?{empresa_id:''}:{})}))
  const create=async e=>{e.preventDefault();setLoading(true);setError('');setInfo('');setCredentials(null);try{const result=await criarUsuarioAdmin(form);setCredentials(result);setForm({nome:'',email:'',perfil:'PARCEIRO',empresa_id:general?'':profile.empresa_id});await load()}catch(e){setError(e.message)}finally{setLoading(false)}}
- const update=async e=>{e.preventDefault();setLoading(true);setError('');setInfo('');try{await atualizarUsuarioAdmin(editing);setEditing(null);setInfo('Usuário atualizado.');await load()}catch(e){setError(e.message)}finally{setLoading(false)}}
+ const update=async e=>{
+  e.preventDefault()
+  const changed = general && (editing.perfil !== editingOriginal.perfil || (editing.empresa_id || null) !== (editingOriginal.empresa_id || null))
+  if (changed && !window.confirm(`Confirmar alteração de acesso de ${editing.nome}?\nDe: ${editingOriginal.perfil}\nPara: ${editing.perfil}\nEsta alteração modifica permissões imediatamente no banco.`)) return
+  setLoading(true);setError('');setInfo('')
+  try {
+    if (general) await alterarUsuarioGeral(editing, editingOriginal)
+    else await atualizarUsuarioAdmin(editing)
+    setEditing(null);setEditingOriginal(null);setInfo('Usuário atualizado com sucesso.');await load()
+  } catch(e){setError(e.message)} finally {setLoading(false)}
+ }
  return <div className="page-stack"><Header kicker="ADMINISTRAÇÃO" title="Usuários" description={general?'Gerencie os quatro perfis e seus vínculos.':'Somente Parceiros da sua empresa podem ser cadastrados e editados.'}/><Feedback error={error} info={info}/>
  {credentials&&<section className="panel operation-form"><h3>Conta criada — senha provisória</h3><div className="inline-info">Mostre esta senha ao usuário por um canal seguro. Ela aparece somente nesta resposta e não deve ser copiada para registros ou mensagens comuns.</div><p><strong>E-mail:</strong> {credentials.email}</p><p><strong>Senha provisória:</strong> <code className="secret-code">{credentials.temporary_password}</code></p><button type="button" className="btn secondary" onClick={()=>setCredentials(null)}>Ocultar senha</button></section>}
  <section className="panel operation-form"><h3>Novo usuário</h3><form onSubmit={create}><div className="form-grid">
@@ -71,8 +81,12 @@ export function UsuariosAdmin() {
  {general&&<label>Perfil<select value={form.perfil} onChange={e=>set('perfil',e.target.value)}><option value="PARCEIRO">Parceiro</option><option value="ADMIN_EMPRESA">Administrador da empresa</option><option value="DESBLOQUEIO">Desbloqueio</option><option value="ADMIN_GERAL">Administrador geral</option></select></label>}
  {general&&['PARCEIRO','ADMIN_EMPRESA'].includes(form.perfil)&&<label>Empresa *<select required value={form.empresa_id} onChange={e=>set('empresa_id',e.target.value)}><option value="">Selecione</option>{companies.filter(c=>c.ativa).map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>}
  </div><div className="button-row"><button className="btn primary" disabled={loading}>{loading?'Criando...':'Criar usuário com senha provisória'}</button></div></form><p className="admin-help">Exige a Edge Function <code>criar-usuario</code> implantada com autenticação JWT. Nunca inclua a chave <code>service_role</code> no React.</p></section>
- <section className="panel table-wrap"><table className="central-table"><thead><tr><th>NOME</th><th>E-MAIL</th><th>PERFIL</th><th>EMPRESA</th><th>ATIVO</th><th>AÇÃO</th></tr></thead><tbody>{items.map(u=><tr key={u.id}><td>{u.nome}</td><td>{u.email}</td><td>{u.perfil}</td><td>{u.empresa_nome||'Global'}</td><td>{u.ativo?'Sim':'Não'}</td><td><button className="btn secondary btn-small" onClick={()=>setEditing({...u})}>Editar</button></td></tr>)}</tbody></table>{items.length===0&&<p className="admin-empty">Nenhum usuário encontrado.</p>}</section>
- {editing&&<div className="modal-overlay" role="presentation"><section className="detail-modal" role="dialog" aria-modal="true" aria-label="Editar usuário"><h2>Editar usuário</h2><form className="operation-form" onSubmit={update}><div className="form-grid"><label>Nome<input value={editing.nome} minLength={2} required onChange={e=>setEditing(p=>({...p,nome:e.target.value}))}/></label><label>Situação<select value={editing.ativo?'true':'false'} onChange={e=>setEditing(p=>({...p,ativo:e.target.value==='true'}))}><option value="true">Ativo</option><option value="false">Inativo</option></select></label></div><p className="admin-help">Mudança de perfil ou empresa não é permitida nesta edição.</p><div className="button-row"><button className="btn primary" disabled={loading}>Salvar</button><button className="btn secondary" type="button" onClick={()=>setEditing(null)}>Fechar</button></div></form></section></div>}
+ <section className="panel table-wrap"><table className="central-table"><thead><tr><th>NOME</th><th>E-MAIL</th><th>PERFIL</th><th>EMPRESA</th><th>ATIVO</th><th>AÇÃO</th></tr></thead><tbody>{items.map(u=><tr key={u.id}><td>{u.nome}</td><td>{u.email}</td><td>{u.perfil}</td><td>{u.empresa_nome||'Global'}</td><td>{u.ativo?'Sim':'Não'}</td><td><button className="btn secondary btn-small" onClick={()=>{setEditing({...u,justificativa:''});setEditingOriginal({...u})}}>Editar</button></td></tr>)}</tbody></table>{items.length===0&&<p className="admin-empty">Nenhum usuário encontrado.</p>}</section>
+ {editing&&<div className="modal-overlay" role="presentation"><section className="detail-modal" role="dialog" aria-modal="true" aria-label="Editar usuário"><h2>Editar usuário</h2><form className="operation-form" onSubmit={update}><div className="form-grid"><label>Nome<input value={editing.nome} minLength={2} required onChange={e=>setEditing(p=>({...p,nome:e.target.value}))}/></label><label>Situação<select value={editing.ativo?'true':'false'} onChange={e=>setEditing(p=>({...p,ativo:e.target.value==='true'}))}><option value="true">Ativo</option><option value="false">Inativo</option></select></label>
+ {general&&<label>Perfil<select value={editing.perfil} onChange={e=>setEditing(p=>({...p,perfil:e.target.value,empresa_id:['ADMIN_GERAL','DESBLOQUEIO'].includes(e.target.value)?'':p.empresa_id}))}><option value="PARCEIRO">Parceiro</option><option value="ADMIN_EMPRESA">Administrador da empresa</option><option value="DESBLOQUEIO">Desbloqueio</option><option value="ADMIN_GERAL">Administrador geral</option></select></label>}
+ {general&&['PARCEIRO','ADMIN_EMPRESA'].includes(editing.perfil)&&<label>Empresa *<select required value={editing.empresa_id||''} onChange={e=>setEditing(p=>({...p,empresa_id:e.target.value}))}><option value="">Selecione</option>{companies.filter(c=>c.ativa||c.id===editing.empresa_id).map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>}
+ {general&&(editing.perfil!==editingOriginal?.perfil||(editing.empresa_id||null)!==(editingOriginal?.empresa_id||null))&&<label style={{gridColumn:'1 / -1'}}>Justificativa da alteração de acesso *<textarea required minLength={10} rows={3} value={editing.justificativa||''} onChange={e=>setEditing(p=>({...p,justificativa:e.target.value}))} placeholder="Descreva o motivo da mudança (mínimo 10 caracteres)"/></label>}
+ </div><p className="admin-help">{general?'Apenas o Administrador geral pode alterar perfis. Alterações de acesso exigem confirmação e são auditadas por 7 dias. Mudanças de empresa podem ser recusadas quando existem registros vinculados.':'Você pode alterar somente nome e situação de Parceiros da sua empresa.'}</p><div className="button-row"><button className="btn primary" disabled={loading}>Salvar</button><button className="btn secondary" type="button" onClick={()=>setEditing(null)}>Fechar</button></div></form></section></div>}
  </div>
 }
 export function NotificacoesInternas(){

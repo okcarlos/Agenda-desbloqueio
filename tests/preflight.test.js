@@ -1,7 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { validarConfiguracao } from '../scripts/preflight.mjs'
-const root = new URL('../', import.meta.url).pathname
+import { fileURLToPath } from 'node:url'
+
+const root = fileURLToPath(new URL('../', import.meta.url))
 const base = {
   root,
   env: {

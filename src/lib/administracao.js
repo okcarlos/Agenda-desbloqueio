@@ -17,6 +17,16 @@ export const salvarEmpresa = value => rpc('ieva_salvar_empresa', {
 })
 export const listarUsuariosAdmin = () => rpc('ieva_listar_usuarios_admin')
 export const atualizarUsuarioAdmin = value => rpc('ieva_atualizar_usuario_admin', { p_id: value.id, p_nome: value.nome, p_ativo: value.ativo })
+export const alterarUsuarioGeral = (value, original) => rpc('ieva_alterar_usuario_geral', {
+  p_id: value.id,
+  p_nome: value.nome,
+  p_ativo: value.ativo,
+  p_perfil: value.perfil,
+  p_empresa_id: value.empresa_id || null,
+  p_perfil_esperado: original.perfil,
+  p_empresa_esperada: original.empresa_id || null,
+  p_justificativa: value.justificativa || null,
+})
 export async function criarUsuarioAdmin(value) {
   const { data, error } = await supabase.functions.invoke('criar-usuario', { body: value })
   if (error) throw new Error(error.message || 'Falha ao chamar função protegida')

@@ -60,7 +60,7 @@ No terminal, dentro da pasta `iev-avanca-js`:
 
 ```bash
 npm install
-cp .env .env
+cp .env.example .env
 ```
 
 No Windows PowerShell, use `Copy-Item .env.example .env` no lugar do `cp`.

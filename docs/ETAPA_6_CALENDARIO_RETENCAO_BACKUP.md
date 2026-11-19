@@ -50,7 +50,7 @@ No host separado, com **HTTPS obrigatório** via reverse proxy, Node.js 20+, esp
 ```bash
 cd backup-worker
 npm install
-# configurar as variáveis de backup-worker/.env no AMBIENTE do host, sem subir .env no repositório
+# configurar as variáveis de backup-worker/.env.example no AMBIENTE do host, sem subir .env no repositório
 npm start
 ```
 
