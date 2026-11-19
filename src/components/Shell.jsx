@@ -6,7 +6,7 @@ import {
   Users, X, Tags,
 } from 'lucide-react'
 import { perfilLabel, useAuth } from '../auth/AuthContext.jsx'
-import logoIevAvanca from "../Assets/Logo.jpeg";
+import logoIevAvanca from "../Assets/Logo.png";
 
 const navigation = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, allowed: ['ADMIN_GERAL', 'DESBLOQUEIO'] },
