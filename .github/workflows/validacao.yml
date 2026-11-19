@@ -1,0 +1,21 @@
+name: Verificação IEV Avança
+on:
+  push:
+  pull_request:
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+      - run: npm run build
+      - run: node scripts/preflight.mjs --help
+        env:
+          VITE_SUPABASE_URL: https://projeto-test.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+          VITE_IEVA_BACKUP_API_URL: https://backup.example.org

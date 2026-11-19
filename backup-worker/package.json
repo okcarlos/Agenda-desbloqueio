@@ -1,0 +1,6 @@
+{
+ "name":"ieva-backup-worker","private":true,"type":"module",
+ "scripts":{"start":"node server.js"},
+ "engines":{"node":">=20"},
+ "dependencies":{"@supabase/supabase-js":"^2.80.0"}
+}
