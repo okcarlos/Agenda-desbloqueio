@@ -52,10 +52,9 @@ export function Shell() {
     <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       <div className="brand-row">
         <Link to="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <div className="brand-symbol">
+          <div className="brand-logo">
             <img src={logoIevAvanca} alt="I&V Avança" />
           </div>
-          <span className="brand-symbol">I&V</span>
           <span className="brand-name"><strong>I&V Avança</strong><small>Agendamentos</small></span>
         </Link>
         <button type="button" className="icon-btn sidebar-close-mobile" aria-label="Fechar menu" onClick={() => setMobileOpen(false)}><X size={20} /></button>
