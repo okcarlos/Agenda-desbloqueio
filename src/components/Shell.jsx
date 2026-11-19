@@ -51,8 +51,8 @@ export function Shell() {
     <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       <div className="brand-row">
         <Link to="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <span className="brand-symbol">IEV</span>
-          <span className="brand-name"><strong>IEV Avança</strong><small>Agendamentos</small></span>
+          <span className="brand-symbol">I&V</span>
+          <span className="brand-name"><strong>I&V Avança</strong><small>Agendamentos</small></span>
         </Link>
         <button type="button" className="icon-btn sidebar-close-mobile" aria-label="Fechar menu" onClick={() => setMobileOpen(false)}><X size={20} /></button>
       </div>
@@ -82,7 +82,7 @@ export function Shell() {
       <header className="topbar">
         <div className="topbar-heading">
           <button type="button" className="icon-btn hamburger" aria-label="Abrir menu" onClick={() => setMobileOpen(true)}><Menu size={22} /></button>
-          <div><span className="eyebrow">SISTEMA IEV AVANÇA</span><h1>{titleByPath[location.pathname] || 'IEV Avança'}</h1></div>
+          <div><span className="eyebrow">SISTEMA I&V AVANÇA</span><h1>{titleByPath[location.pathname] || 'IEV Avança'}</h1></div>
         </div>
         <div className="topbar-actions">
           {canReceiveNotifications && <Link to="/notificacoes" title="Notificações" className="icon-btn bell-btn"><Bell size={20} /><span className="sr-only">Notificações</span></Link>}
