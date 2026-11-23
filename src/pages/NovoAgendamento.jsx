@@ -57,7 +57,7 @@ export function NovoAgendamento() {
     finally { setSalvando(false) }
   }
   return <div className="page-stack">
-    <div className="page-intro"><div><span className="eyebrow">OPERAÇÃO</span><h2>Novo Agendamento</h2><p>Horários de 15 em 15 minutos, sem limite rígido de atendimentos.</p></div><Link className="btn secondary" to="/central">Voltar à Central</Link></div>
+    <div className="page-intro"><div><span className="eyebrow">OPERAÇÃO</span><h2>Novo Agendamento</h2></div><Link className="btn secondary" to="/central">Voltar à Central</Link></div>
     <div className="notice-strip"><ShieldCheck size={18}/> CPF pode ser agendado várias vezes, inclusive no mesmo dia e horário. O sistema apenas avisa sobre repetição; nunca bloqueia por CPF.</div>
     <form className="panel operation-form" onSubmit={e => { e.preventDefault(); void enviar() }}>
       <div className="form-grid">
