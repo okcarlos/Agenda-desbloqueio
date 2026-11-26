@@ -32,7 +32,17 @@ function ModalDetalhes({ id, nomes, perfil, usuarioId, onClose, onChanged, perso
   const podeResultado = ['ADMIN_GERAL','ADMIN_EMPRESA','DESBLOQUEIO'].includes(perfil)
   const podeEditar = perfil !== 'PARCEIRO' || a?.criado_por_usuario_id === usuarioId
   const atualCustom = personalizados.find(s=>s.nome===a?.status)
-  const aberto = a && !['CANCELADO','DESBLOQUEADO'].includes(a.status) && (!atualCustom || atualCustom.comportamento==='ATIVO')
+  // CLIENTE NÃO ATENDEU continua editável durante os 7 dias de retenção.
+  // Os demais status encerrados permanecem terminais.
+  const aberto = Boolean(a) && (
+    a.status === 'CLIENTE NÃO ATENDEU' ||
+    (!a.excluir_apos && !['CANCELADO', 'DESBLOQUEADO'].includes(a.status) &&
+      (!atualCustom || atualCustom.comportamento === 'ATIVO'))
+  )
+  const destinos = [
+    ...STATUS.filter(s => s !== 'CANCELADO'),
+    ...personalizados.filter(s => s.ativo).map(s => s.nome)
+  ].filter(s => s !== a?.status)
   const rodar = async operacao => {
     setBusy(true); setErro('')
     try {
@@ -48,7 +58,28 @@ function ModalDetalhes({ id, nomes, perfil, usuarioId, onClose, onChanged, perso
   return <div className="modal-overlay" onMouseDown={e => { if(e.target===e.currentTarget) onClose() }}><section className="detail-modal" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div className="modal-head"><div><span className="eyebrow">DETALHES</span><h2>Agendamento</h2></div><button className="icon-btn" type="button" aria-label="Fechar" onClick={onClose}><X/></button></div>
     {erro && <p className="inline-error" role="alert">{erro}</p>}{!a ? <p>Carregando dados autorizados...</p> : <>
     <div className="detail-grid"><div><small>Cliente</small><strong>{a.cliente_nome}</strong></div><div><small>CPF</small><strong>{a.cliente_cpf}</strong></div><div><small>Telefone</small><strong>{a.cliente_telefone}</strong></div><div><small>Proposta</small><strong>{a.numero_proposta}</strong></div><div><small>Empresa</small><strong>{nomes.empresas[a.empresa_id] || 'Empresa'}</strong></div><div><small>Responsável</small><strong>{nomes.usuarios[a.responsavel_usuario_id] || 'Usuário'}</strong></div><div><small>Atendimento</small><strong>{formatData(a.data_atendimento)} · {formatHora(a.hora_atendimento)}</strong></div><div><small>Status</small><span className={`status-pill ${corStatus(a.status)}`} style={corInline(a.status,personalizados)}>{a.status}</span></div><div className="full"><small>Observações</small><p>{a.observacoes || 'Sem observações'}</p></div></div>
-    {aberto && <div className="button-row detail-actions">{podeResultado && ['AGENDADO','REAGENDADO'].includes(a.status) && <button className="btn secondary" disabled={busy} onClick={() => void resultado('EM ATENDIMENTO')}>Iniciar atendimento</button>}{podeResultado && a.status==='EM ATENDIMENTO' && <><button className="btn secondary" disabled={busy} onClick={() => void resultado('DESBLOQUEADO')}>Desbloqueado</button><button className="btn secondary" disabled={busy} onClick={() => void resultado('CLIENTE NÃO ATENDEU')}>Cliente não atendeu</button></>}{podeResultado && personalizados.filter(s=>s.ativo && s.origens.includes(a.status)).map(s=><button key={s.id} className="btn secondary" disabled={busy} onClick={()=>void resultado(s.nome)}>{s.nome}</button>)}{podeResultado && atualCustom?.comportamento==='ATIVO' && <><button className="btn secondary" disabled={busy} onClick={()=>void resultado('EM ATENDIMENTO')}>Em atendimento</button><button className="btn secondary" disabled={busy} onClick={()=>void resultado('DESBLOQUEADO')}>Desbloqueado</button><button className="btn secondary" disabled={busy} onClick={()=>void resultado('CLIENTE NÃO ATENDEU')}>Cliente não atendeu</button></>}{podeEditar && <><button className="btn secondary" disabled={busy} onClick={() => {setModo('reagendar');setConfirmar(null)}}>Reagendar</button><button className="btn secondary" disabled={busy} onClick={() => setModo('cancelar')}>Cancelar</button></>}</div>}
+    {aberto && <div className="button-row detail-actions">
+      {podeResultado && <label className="status-select-label">Alterar status
+        <select
+          key={`${a.id}-${a.versao}`}
+          defaultValue=""
+          disabled={busy}
+          onChange={e => {
+            const destino = e.target.value
+            e.target.value = ''
+            if (destino) void resultado(destino)
+          }}
+        >
+          <option value="">Escolha um status</option>
+          {destinos.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </label>}
+      {podeEditar && <>
+        <button className="btn secondary" disabled={busy} onClick={() => {setModo('reagendar');setConfirmar(null)}}>Reagendar</button>
+        <button className="btn secondary" disabled={busy} onClick={() => setModo('cancelar')}>Cancelar</button>
+      </>}
+    </div>}
+    {a && !aberto && <p className="notice-strip" role="status">Este agendamento está encerrado e não permite novas alterações de status.</p>}
     {modo==='reagendar' && <div className="modal-action"><h3>Reagendar atendimento</h3><div className="form-grid"><label>Data<input type="date" min={dataHoje()} value={novoDia} onChange={e=>{setNovoDia(e.target.value);setConfirmar(null)}}/></label><label>Horário<input type="time" step="900" value={novaHora} onChange={e=>{setNovaHora(e.target.value);setConfirmar(null)}}/></label></div>{confirmar && <div className="confirmation"><p>Há <strong>{confirmar.ocupacao}</strong> agendamentos ativos nesse horário. O reagendamento continua permitido.</p><button className="btn primary" disabled={busy} onClick={() => void reagendar({confirmarLotacao:true,contagemConfirmada:confirmar.ocupacao})}>Confirmar mesmo assim</button></div>}<div className="button-row"><button className="btn secondary" onClick={()=>setModo('')}>Voltar</button><button className="btn primary" disabled={busy || !novoDia || !/^([01]\d|2[0-3]):(00|15|30|45)$/.test(novaHora)} onClick={()=>void reagendar({})}>Salvar reagendamento</button></div></div>}
     {modo==='cancelar' && <div className="modal-action"><h3>Cancelar agendamento</h3><label>Justificativa (mínimo de 5 letras)<textarea value={justificativa} rows="3" onChange={e=>setJustificativa(e.target.value)}/></label><div className="button-row"><button className="btn secondary" onClick={()=>setModo('')}>Voltar</button><button className="btn primary" disabled={busy || letras(justificativa)<5} onClick={()=>void rodar(()=>cancelarAgendamento(a.id,a.versao,justificativa))}>Confirmar cancelamento</button></div></div>}
     {podeResultado && <div className="modal-action"><h3>Registrar tratativa</h3><textarea rows="2" value={nota} onChange={e=>setNota(e.target.value)} placeholder="Observação sobre o atendimento"/><button className="btn secondary" disabled={busy || !nota.trim()} onClick={()=>void rodar(()=>registrarTratativaAgendamento(a.id,nota))}>Adicionar tratativa</button></div>}
