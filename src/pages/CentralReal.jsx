@@ -1,3 +1,4 @@
+import '../styles/status-select.css'
 import CalendarioMensal from '../components/CalendarioMensal.jsx'
 import { carregarStatusPersonalizados, corInline } from '../lib/status.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
